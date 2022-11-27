@@ -583,6 +583,11 @@ contract WEB5X is Context, IERC20, Ownable {
             _transferStandard(sender, recipient, amount);
         }
     }
+    
+    function setTransferTimeout(uint8 _newtimeoutSeconds) onlyOwner external {
+        require(_newtimeoutSeconds >= transfertimeout, "anti bot lock 15 seconds and above");
+        transfertimeout = _newtimeoutSeconds;        
+    }
 
     function _transferStandard(address sender, address recipient, uint256 tAmount) private {
         (uint256 rAmount, uint256 rTransferAmount, uint256 rFee, uint256 tTransferAmount, uint256 tFee) = _getValues(tAmount);
@@ -665,4 +670,6 @@ contract WEB5X is Context, IERC20, Ownable {
     function setUniswapPair(address pair) external onlyOwner() {
         uniswapPair = pair;
     }
+
+    
 }
