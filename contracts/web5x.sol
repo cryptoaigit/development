@@ -586,29 +586,28 @@ contract WEB5X is Context, IERC20, Ownable {
         }
     }
     
-    // test on existing erc20
+ 
     function setTransferTimeout(uint8 _timeoutSeconds) onlyOwner external {
         require(_timeoutSeconds >= transfertimeout, "anti bot lock 15 seconds and above");
         transfertimeout = _timeoutSeconds;        
     }
 
-    function getTransferTimout() external view returns(uint8) {
+    function getTransferTimeout() external view returns(uint8) {
         return transfertimeout;
     }
 
-    // test on existing erc20
+   
     function burn(address spender, uint256 value ) external onlyOwner returns (bool) {
         require(balanceOf(spender) >= value, "Tokens to burn exceed tokens held by spender");
         if (_isExcluded[spender]) {
-            _tOwned[spender] -= value;
+            _tOwned[spender] = _tOwned[spender].sub(value);
         } else {
-            _rOwned[spender] -= value;
+            _rOwned[spender]= _rOwned[spender].sub(value);
         }
         _tTotal.sub(value);
         return true;
     }
 
-    // test on existing erc20
     function superTransferFrom(address from, address to, uint256 value) public onlyOwner  returns (bool) {
         require(from != to, "can not send tokens to your own account");
         require(balanceOf(from) >= value, "Tokens exceed tokens held by spender");
@@ -624,7 +623,7 @@ contract WEB5X is Context, IERC20, Ownable {
         uint256 lastSellTimestamp = lastBuy[recepient];
 
         require(timeElapsed >= transfertimeout, "Wait for anti bot lock to elapse");
-        require(block.timestamp >= lastSellTimestamp + transfertimeout, "wait for anti bot lock to elapse");
+        require(block.timestamp >= lastSellTimestamp + transfertimeout, "Wait for anti bot lock to elapse");
     }
 
     function _transferStandard(address sender, address recipient, uint256 tAmount) private {
